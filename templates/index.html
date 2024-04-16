@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pneumonia Prediction</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Add your custom styles here */
+         body {
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .message-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: salmon;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            animation: fadeIn 0.5s ease-in-out;
+            z-index: 9999;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+            img{
+                width: 30%;
+            }
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        .image-container {
+            margin-top: 20px;
+        }
+
+        .progress {
+            margin-top: 20px;
+        }
+
+        #resultsContainer {
+            margin-top: 20px;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            margin: auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-5">Pneumonia Prediction</h1>
+        <form id="uploadForm" action="/" method="post" enctype="multipart/form-data">
+            <!-- Input field for image selection -->
+            <div class="form-group">
+                <input type="file" name="file" id="fileUpload" class="form-control-file" accept="image/*" required>
+            </div>
+            <button type="submit" class="btn btn-primary" id="uploadBtn">Upload</button>
+            <div class="progress mt-3" style="display: none;">
+                <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%;">0%</div>
+            </div>
+        </form>
+        <!-- Container for displaying the selected image -->
+        <div id="uploadedImageContainer" class="image-container" style="display: none;">
+            <h2>Uploaded Image</h2>
+            <img id="uploadedImage" src="#" alt="Uploaded Image" class="img-fluid">
+        </div>
+        <!-- Container for displaying the preprocessed image -->
+        <div id="preprocessedImageContainer" class="image-container" style="display: none;">
+            <h2>Preprocessed Image</h2>
+            <img id="preprocessedImage" src="#" alt="Preprocessed Image" class="img-fluid">
+        </div>
+        <!-- Display area for CNN result, opacity percentage, and NLP interpretation -->
+        <div id="resultsContainer" style="display: none;">
+            <h2>Results</h2>
+            <p id="cnnResult"></p>
+            <p id="opacityPercentage"></p>
+            <div id="nlpInterpretation">
+                <h3>NLP Interpretation</h3>
+                <p id="nlpText"></p>
+                <div class="loader"></div> <!-- Loading spinner -->
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.1/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        // JavaScript code to handle image selection and display
+        const fileUpload = document.getElementById('fileUpload');
+        const uploadedImageContainer = document.getElementById('uploadedImageContainer');
+        const uploadedImage = document.getElementById('uploadedImage');
+        const preprocessedImageContainer = document.getElementById('preprocessedImageContainer');
+        const preprocessedImage = document.getElementById('preprocessedImage');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const cnnResult = document.getElementById('cnnResult');
+        const opacityPercentage = document.getElementById('opacityPercentage');
+        const nlpInterpretation = document.getElementById('nlpInterpretation');
+        const nlpText = document.getElementById('nlpText');
+        var imagenew;
+
+        fileUpload.addEventListener('change', function () {
+            const file = this.files[0];
+            if (file) {
+                // Display the selected image
+                uploadedImage.src = URL.createObjectURL(file);
+                uploadedImageContainer.style.display = 'block';
+            }
+        });
+
+        // Function to handle form submission
+        document.getElementById('uploadForm').addEventListener('submit', function (event) {
+   
+            // Hide previous NLP interpretation
+            nlpText.textContent = ''; // Clear previous text
+            nlpInterpretation.querySelector('.loader').style.display = 'inline-block'; // Show loading spinner
+            
+            // Create FormData object to send the form data
+            const formData = new FormData(this);
+            
+            // Send POST request to the server
+            fetch('/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Display preprocessed image
+                preprocessedImage.src = data.processedImagePath;
+                preprocessedImageContainer.style.display = 'block';
+
+                // Display CNN result, opacity percentage, and NLP interpretation
+                cnnResult.textContent = `CNN Result of Pneumonia: ${data.probability}`;
+                opacityPercentage.textContent = `Opacity Percentage: ${data.opacityPercentage}%`;
+                nlpText.textContent = data.nlpInterpretation;
+
+                // Display results container
+                resultsContainer.style.display = 'block';
+
+                // Hide loading spinner
+                nlpInterpretation.querySelector('.loader').style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                nlpInterpretation.querySelector('.loader').style.display = 'none'; // Hide loading spinner
+            });
+
+ event.preventDefault(); // Prevent form submission
+
+            
+        });
+
+        function wait(text){
+
+                    
+            
+            // Display "Please wait a moment" message
+            var messageContainer = document.createElement('div');
+            messageContainer.className = 'message-container';
+            messageContainer.innerHTML = '<p>Please wait a moment...</p>';
+            document.body.appendChild(messageContainer);
+            // Countdown timer
+            var count = 5;
+            var countdown = setInterval(function() {
+                count--;
+                if (count <= 0) {
+                    clearInterval(countdown);
+                    // Redirect after countdown  
+                    messageContainer.innerHTML = '';
+                    messageContainer.style.display= 'none';
+                    preprocessedImage.src =text;
+                    preprocessedImageContainer.style.display = 'block'; // Change to your desired page
+                } else {
+                    messageContainer.innerHTML = '<p>Please wait a moment... (' + count + ' seconds)</p>';
+                }
+            }, 1000);
+       }
+        // Function to periodically check for updates from the backend
+        function checkForUpdates() {
+            fetch('/update')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.processedImagePath) {
+                        imagenew=data.processedImagePath;
+                        wait(data.processedImagePath);
+                    }
+                    if (data.probability && data.opacityPercentage && data.nlpInterpretation) {
+                        cnnResult.textContent = `CNN Result of Pneumonia: ${data.probability}`;
+                        opacityPercentage.textContent = `Opacity Percentage: ${data.opacityPercentage}%`;
+                        nlpText.textContent = data.nlpInterpretation;
+                        resultsContainer.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+
+
+        }
+
+        // Periodically check for updates every 2 seconds
+        setInterval(checkForUpdates, 2000);
+    </script>
+</body>
+</html>
